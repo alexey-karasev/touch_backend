@@ -5,6 +5,7 @@
 var mongoose = require( 'mongoose' );
 var crypto = require('crypto');
 var jwt = require('jsonwebtoken');
+var env = require('../env');
 
 var userSchema = new mongoose.Schema({
     email: {
@@ -57,7 +58,7 @@ userSchema.methods.generateJwt = function() {
         phone: this.phone,
         name: this.name,
         exp: parseInt(expiry.getTime() / 1000)
-    }, process.env.JWT_SECRET);
+    }, env.jwtSecret);
 };
 
 mongoose.model('User', userSchema);
