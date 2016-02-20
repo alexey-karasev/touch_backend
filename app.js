@@ -5,6 +5,8 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 
+// Initializing database
+require('./api/models/db');
 var routes = require('./api/routes/index');
 
 var app = express();
@@ -63,9 +65,6 @@ app.use(function (err, req, res, next) {
         error: err
     })
 });
-
-// Initializing database
-require('./api/models/db');
 
 
 module.exports = app;

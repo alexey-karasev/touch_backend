@@ -6,7 +6,6 @@ var assign = require('object-assign');
 
 var env = {name: process.env.NODE_ENV || 'development'};
 var db = require('./config/database.js');
-console.log(process.env.NODE_ENV);
 env.db = db[env.name];
 
 var secrets = require('./config/secrets.js');
