@@ -27,6 +27,10 @@ var userSchema = new mongoose.Schema({
         unique: true,
         required: true
     },
+    confirm: {
+        type: String,
+        required: true
+    },
     hash: {
         type: String,
         required: true
@@ -45,6 +49,11 @@ userSchema.methods.setPassword = function(password){
 userSchema.methods.validPassword = function(password) {
     var hash = crypto.pbkdf2Sync(password, this.salt, 1000, 64).toString('hex');
     return this.hash === hash;
+};
+
+userSchema.methods.generateConfirm = function() {
+    rand = Math.floor(Math.random() * 9999);
+    return ('0000'+rand.toString()).substr(-4); //last four digits
 };
 
 userSchema.methods.generateJwt = function() {

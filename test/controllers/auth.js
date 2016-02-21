@@ -103,6 +103,7 @@ describe('auth', function () {
                             });
                             expect(user.hash).to.have.length.above(0);
                             expect(user.salt).to.have.length.above(0);
+                            expect(user.confirm).to.have.length(4);
                             done();
                         });
 
