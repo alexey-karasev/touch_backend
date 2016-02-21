@@ -8,8 +8,8 @@ router.get('/', function(req, res, next) {
     res.json({});
 });
 
-router.post('/register', auth.register);
-router.post('/login', auth.login);
-router.post('/confirm', auth.confirm);
+router.post('/users/register', auth.register);
+router.post('/users/login', auth.login);
+router.post('/users/confirm', auth.confirm);
 
 module.exports = router;

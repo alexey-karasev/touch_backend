@@ -23,11 +23,11 @@ describe('auth', function () {
         });
     });
 
-    describe('/confirm', function(){
+    describe('/users/confirm', function(){
 
         beforeEach(function (done) {
             request
-                .post('/register')
+                .post('/users/register')
                 .send(testCase)
                 .end(function (err, res) {
                     done();
@@ -38,7 +38,7 @@ describe('auth', function () {
             User.findOne({}, function(err, user) {
                 expect(user.confirmed).to.be.false;
                 request
-                    .post('/confirm')
+                    .post('/users/confirm')
                     .send({
                         phone:testCase.phone,
                         confirm: user.confirm
@@ -55,10 +55,10 @@ describe('auth', function () {
         })
     });
 
-    describe('/login', function () {
+    describe('/users/login', function () {
         beforeEach(function (done) {
             request
-                .post('/register')
+                .post('/users/register')
                 .send(testCase)
                 .end(function (err, res) {
                     User.findOne({}, function(err,user){
@@ -72,7 +72,7 @@ describe('auth', function () {
         });
         it('logins the user with correct email', function (done) {
             request
-                .post('/login')
+                .post('/users/login')
                 .send({
                     username: testCase.email,
                     password: testCase.password
@@ -85,7 +85,7 @@ describe('auth', function () {
 
         it('logins the user with correct phone', function (done) {
             request
-                .post('/login')
+                .post('/users/login')
                 .send({
                     username: testCase.phone,
                     password: testCase.password
@@ -98,7 +98,7 @@ describe('auth', function () {
 
         it('logins the user with correct login', function (done) {
             request
-                .post('/login')
+                .post('/users/login')
                 .send({
                     username: testCase.login,
                     password: testCase.password
@@ -111,7 +111,7 @@ describe('auth', function () {
 
         it('does not login with invalid credentials', function (done) {
             request
-                .post('/login')
+                .post('/users/login')
                 .send({
                     username: testCase.login+'1',
                     password: testCase.password
@@ -127,7 +127,7 @@ describe('auth', function () {
                 user.confirmed = false;
                 user.save(function(){
                     request
-                        .post('/login')
+                        .post('/users/login')
                         .send({
                             username: testCase.login,
                             password: testCase.password
@@ -142,10 +142,10 @@ describe('auth', function () {
         });
     });
 
-    describe('/register', function () {
+    describe('/users/register', function () {
         it('stores user credentials and password in db and issues a token back', function (done) {
             request
-                .post('/register')
+                .post('/users/register')
                 .send(testCase)
                 .end(function (err, res) {
                     expect(err).to.not.exist;
