@@ -7,31 +7,28 @@ var LocalStrategy = require('passport-local').Strategy;
 var mongoose = require('mongoose');
 var User = mongoose.model('User');
 
-function _findUser(types, username, password) {
+function _findUser(types, username, password, done) {
     var query = {};
-    var type = types.pop();
+    var type = types.shift();
     query[type] = username;
     User.findOne(query, function (err, user) {
         if (err) {
-            throw err;
+            done(err,null);
         }
         if ((!user) && (types.length > 0)) {
-            _findUser(types, username, password)
+            _findUser(types, username, password, done)
+        } else {
+            done(err, user);
         }
-        return user;
     });
 }
 
 passport.use(new LocalStrategy(function (username, password, done) {
         var user;
-        try {
-            user = _findUser(['email', 'phone', 'login'], username, password)
-        } catch (err) {
-            done(err)
-        }
-        if ((!user) || (!user.validPassword(password))) {
-            done(null, false, {message: 'Incorrect username or password'})
-        }
-        return done(null, user);
+        _findUser(['email', 'phone', 'login'], username, password, function (err, res) {
+            user = res;
+            if (user && !user.validPassword(password)) user = null;
+            return done(err, user);
+        })
     }
 ));
