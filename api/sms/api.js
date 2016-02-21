@@ -8,15 +8,18 @@ function Sms() {
 
 }
 
-Sms.prototype.send = function(phone, text) {
+Sms.prototype.send = function(phone, text, done) {
     switch (env.name) {
         case 'development':
         case 'test':
             console.log('Sent sms ' + text + ' to phone ' + phone);
+            done();
             break;
         case 'production':
+            done();
             break;
         case 'staging':
+            done();
             break;
     }
 };

@@ -14,10 +14,41 @@ var sendJSONresponse = function (res, status, content) {
     res.json(content);
 };
 
-var sendConfirmation = function (user) {
+var sendConfirmation = function (user, done) {
     var phone = user.phone;
     var confirm = user.confirm;
-    sms.send(phone, confirm);
+    sms.send(phone, confirm, done);
+};
+
+module.exports.reset = function (req, res) {
+
+    if (!req.body.phone) {
+        sendJSONresponse(res, 400, {
+            "message": "All fields required"
+        });
+        return;
+    }
+
+    User.findOne({phone: req.body.phone}, function (err, user) {
+        if (!user) {
+            sendJSONresponse(res, 404);
+            return
+        }
+        var password = user.resetPassword();
+        user.save(function (err) {
+            if (err) {
+                sendJSONresponse(res, 404, err);
+            } else {
+                sms.send(req.body.phone, password, function (err) {
+                    if (err) {
+                        sendJSONresponse(res, 404, err);
+                    } else {
+                        sendJSONresponse(res, 200);
+                    }
+                });
+            }
+        })
+    });
 };
 
 module.exports.register = function (req, res) {
@@ -35,18 +66,21 @@ module.exports.register = function (req, res) {
     user.login = req.body.login;
     user.phone = req.body.phone;
     user.confirm = user.generateConfirm();
-    sendConfirmation(user);
-
     user.setPassword(req.body.password);
-
     user.save(function (err) {
         var token;
         if (err) {
             sendJSONresponse(res, 404, err);
         } else {
-            token = user.generateJwt();
-            sendJSONresponse(res, 200, {
-                "token": token
+            sendConfirmation(user, function (err) {
+                if (err) {
+                    sendJSONresponse(res, 404, err);
+                } else {
+                    token = user.generateJwt();
+                    sendJSONresponse(res, 200, {
+                        "token": token
+                    });
+                }
             });
         }
     });
@@ -81,7 +115,7 @@ module.exports.login = function (req, res) {
 
 };
 
-module.exports.confirm = function(req, res){
+module.exports.confirm = function (req, res) {
     if (!req.body.phone || !req.body.confirm) {
         sendJSONresponse(res, 400, {
             "message": "All fields required"
@@ -89,14 +123,14 @@ module.exports.confirm = function(req, res){
         return;
     }
 
-    User.findOne({phone:req.body.phone}, function(err, user) {
+    User.findOne({phone: req.body.phone}, function (err, user) {
         if (err) {
             sendJSONresponse(res, 404, err);
             return;
         }
         if (user.confirm === req.body.confirm) {
             user.confirmed = true;
-            user.save(function(err){
+            user.save(function (err) {
                 if (err) {
                     sendJSONresponse(res, 404, err);
                     return;
@@ -104,8 +138,8 @@ module.exports.confirm = function(req, res){
                 sendJSONresponse(res, 200);
             });
         } else {
-            sendJSONresponse(res, 403, {message:'Invalid confirm code'});
+            sendJSONresponse(res, 403, {message: 'Invalid confirm code'});
         }
     })
-    
+
 };

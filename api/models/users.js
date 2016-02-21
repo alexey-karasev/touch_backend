@@ -51,6 +51,12 @@ userSchema.methods.setPassword = function(password){
     this.hash = crypto.pbkdf2Sync(password, this.salt, 1000, 64).toString('hex');
 };
 
+userSchema.methods.resetPassword = function() {
+    random = Math.random().toString(10).substr(-4); //random string of 4 numbers
+    this.setPassword(random);
+    return random;
+};
+
 userSchema.methods.validPassword = function(password) {
     var hash = crypto.pbkdf2Sync(password, this.salt, 1000, 64).toString('hex');
     return this.hash === hash;

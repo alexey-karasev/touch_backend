@@ -23,7 +23,7 @@ describe('auth', function () {
         });
     });
 
-    describe('/users/confirm', function(){
+    describe('/users/reset', function () {
 
         beforeEach(function (done) {
             request
@@ -34,17 +34,65 @@ describe('auth', function () {
                 });
         });
 
-        it('confirms the user if the confirmation code is correct', function(done) {
-            User.findOne({}, function(err, user) {
+        it('resets the password if the user with the phone number exists', function (done) {
+            User.findOne({}, function (err, user) {
+                hash = user.hash;
+                request
+                    .post('/users/reset')
+                    .send({
+                        phone: testCase.phone
+                    })
+                    .end(function (err, res) {
+                        expect(res.statusCode).to.equal(200);
+                        User.findOne({}, function (err, user1) {
+                            expect(user1.hash).to.not.equal(hash);
+                            done()
+                        })
+                    })
+            });
+        });
+
+        it('does nothing if the user does not not exist', function (done) {
+            User.findOne({}, function (err, user) {
+                hash = user.hash;
+                request
+                    .post('/users/reset')
+                    .send({
+                        phone: testCase.phone+'1'
+                    })
+                    .end(function (err, res) {
+                        expect(res.statusCode).to.equal(404);
+                        User.findOne({}, function (err, user1) {
+                            expect(user1.hash).to.equal(hash);
+                            done()
+                        })
+                    })
+            });
+        })
+    });
+
+    describe('/users/confirm', function () {
+
+        beforeEach(function (done) {
+            request
+                .post('/users/register')
+                .send(testCase)
+                .end(function (err, res) {
+                    done();
+                });
+        });
+
+        it('confirms the user if the confirmation code is correct', function (done) {
+            User.findOne({}, function (err, user) {
                 expect(user.confirmed).to.be.false;
                 request
                     .post('/users/confirm')
                     .send({
-                        phone:testCase.phone,
+                        phone: testCase.phone,
                         confirm: user.confirm
                     })
-                    .end(function(err, res){
-                        User.findOne({}, function(err, user) {
+                    .end(function (err, res) {
+                        User.findOne({}, function (err, user) {
                             expect(user.confirmed).to.be.true;
                             return done()
                         });
@@ -61,9 +109,9 @@ describe('auth', function () {
                 .post('/users/register')
                 .send(testCase)
                 .end(function (err, res) {
-                    User.findOne({}, function(err,user){
-                        user.confirmed=true;
-                        user.save(function(){
+                    User.findOne({}, function (err, user) {
+                        user.confirmed = true;
+                        user.save(function () {
                             done();
                         });
                     });
@@ -113,7 +161,7 @@ describe('auth', function () {
             request
                 .post('/users/login')
                 .send({
-                    username: testCase.login+'1',
+                    username: testCase.login + '1',
                     password: testCase.password
                 }).end(function (err, res) {
                 expect(res.statusCode).to.equal(401);
@@ -123,9 +171,9 @@ describe('auth', function () {
         });
 
         it('does not login unconfirmed user', function (done) {
-            User.findOne({},function(err, user){
+            User.findOne({}, function (err, user) {
                 user.confirmed = false;
-                user.save(function(){
+                user.save(function () {
                     request
                         .post('/users/login')
                         .send({
