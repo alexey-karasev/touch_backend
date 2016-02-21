@@ -23,13 +23,51 @@ describe('auth', function () {
         });
     });
 
-    describe('/login', function () {
+    describe('/confirm', function(){
+
         beforeEach(function (done) {
             request
                 .post('/register')
                 .send(testCase)
                 .end(function (err, res) {
                     done();
+                });
+        });
+
+        it('confirms the user if the confirmation code is correct', function(done) {
+            User.findOne({}, function(err, user) {
+                expect(user.confirmed).to.be.false;
+                request
+                    .post('/confirm')
+                    .send({
+                        phone:testCase.phone,
+                        confirm: user.confirm
+                    })
+                    .end(function(err, res){
+                        User.findOne({}, function(err, user) {
+                            expect(user.confirmed).to.be.true;
+                            return done()
+                        });
+
+                    })
+            });
+
+        })
+    });
+
+    describe('/login', function () {
+        beforeEach(function (done) {
+            request
+                .post('/register')
+                .send(testCase)
+                .end(function (err, res) {
+                    User.findOne({}, function(err,user){
+                        user.confirmed=true;
+                        user.save(function(){
+                            done();
+                        });
+                    });
+
                 });
         });
         it('logins the user with correct email', function (done) {
@@ -82,6 +120,25 @@ describe('auth', function () {
                 expect(res.body).to.be.have.length(0);
                 done()
             })
+        });
+
+        it('does not login unconfirmed user', function (done) {
+            User.findOne({},function(err, user){
+                user.confirmed = false;
+                user.save(function(){
+                    request
+                        .post('/login')
+                        .send({
+                            username: testCase.login,
+                            password: testCase.password
+                        }).end(function (err, res) {
+                        expect(res.statusCode).to.equal(401);
+                        expect(res.body).to.be.have.length(0);
+                        done()
+                    })
+                })
+            });
+
         });
     });
 

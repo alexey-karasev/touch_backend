@@ -27,7 +27,7 @@ passport.use(new LocalStrategy(function (username, password, done) {
         var user;
         _findUser(['email', 'phone', 'login'], username, password, function (err, res) {
             user = res;
-            if (user && !user.validPassword(password)) user = null;
+            if (user && (!user.validPassword(password) || !user.confirmed)) user = null;
             return done(err, user);
         })
     }

@@ -17,11 +17,7 @@ var sendJSONresponse = function (res, status, content) {
 var sendConfirmation = function (user) {
     var phone = user.phone;
     var confirm = user.confirm;
-    if (env.name === 'production') {
-        sms.send(phone, confirm);
-    } else {
-        console.log('Sent confirmation ' + confirm + ' to phone ' + phone);
-    }
+    sms.send(phone, confirm);
 };
 
 module.exports.register = function (req, res) {
@@ -39,6 +35,7 @@ module.exports.register = function (req, res) {
     user.login = req.body.login;
     user.phone = req.body.phone;
     user.confirm = user.generateConfirm();
+    sendConfirmation(user);
 
     user.setPassword(req.body.password);
 
@@ -82,4 +79,33 @@ module.exports.login = function (req, res) {
         }
     })(req, res);
 
+};
+
+module.exports.confirm = function(req, res){
+    if (!req.body.phone || !req.body.confirm) {
+        sendJSONresponse(res, 400, {
+            "message": "All fields required"
+        });
+        return;
+    }
+
+    User.findOne({phone:req.body.phone}, function(err, user) {
+        if (err) {
+            sendJSONresponse(res, 404, err);
+            return;
+        }
+        if (user.confirm === req.body.confirm) {
+            user.confirmed = true;
+            user.save(function(err){
+                if (err) {
+                    sendJSONresponse(res, 404, err);
+                    return;
+                }
+                sendJSONresponse(res, 200);
+            });
+        } else {
+            sendJSONresponse(res, 403, {message:'Invalid confirm code'});
+        }
+    })
+    
 };
