@@ -78,6 +78,9 @@ describe('auth', function () {
         })
     });
 
+
+
+
     describe('/users/confirm', function () {
 
         beforeEach(function (done) {
@@ -109,6 +112,8 @@ describe('auth', function () {
 
         })
     });
+
+
 
     describe('/users/login', function () {
         beforeEach(function (done) {
@@ -210,6 +215,7 @@ describe('auth', function () {
     });
 
 
+
     describe('/users/add_phone', function () {
 
         var token;
@@ -272,11 +278,34 @@ describe('auth', function () {
                                 .post('/users/add_phone')
                                 .send(testCase)
                                 .end(function (err, res) {
-                                    expect(res.statusCode).to.equal(500)
+                                    expect(res.statusCode).to.equal(500);
+                                    expect(res.body).to.eql({
+                                        'error': {
+                                            id:utils.http.errors.NOT_UNIQUE_FIELD.id,
+                                            description:utils.http.errors.NOT_UNIQUE_FIELD.description,
+                                            payload:"phone"
+                                        }
+                                    });
+                                    return done()
                                 })
                         });
                 })
         })
+
+        it ('sends the invalid credentials error if the token is invalid', function(done) {
+            testCase = {
+                phone: "7",
+                token: "123"
+            };
+            request
+                .post('/users/add_phone')
+                .send(testCase)
+                .end(function (err, res) {
+                    expect(res.statusCode).to.equal(401);
+                    expect(res.body.error.id).to.equal('INVALID_USER_CREDENTIALS');
+                    return done()
+                });
+        });
     });
 
     describe('/users/register', function () {

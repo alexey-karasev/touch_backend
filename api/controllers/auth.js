@@ -8,26 +8,13 @@ var env = require('../env');
 var sms = require('../sms/api');
 var User = mongoose.model('User');
 var utils = require('../utils');
-
-
-var sendJSONresponse = function (res, status, content) {
-    res.status(status);
-    res.json(content);
-};
+var jwt = require('jsonwebtoken');
 
 var sendConfirmation = function (user, done) {
     var phone = user.phone;
     var confirm = user.confirm;
     sms.send(phone, confirm, done);
 };
-
-module.exports.errors = [
-    {
-        error: 'DUPLICATE_ENTRY',
-        description: 'Trying to save user with unique '
-    },
-    {}
-];
 
 module.exports.reset = function (req, res) {
 
@@ -78,8 +65,8 @@ module.exports.register = function (req, res) {
                 utils.http.sendError(res, 'NOT_FOUND', err)
             } else {
                 token = user.generateJwt();
-                sendJSONresponse(res, 200, {
-                    "token": token
+                utils.http.send(res, {
+                    token: token
                 });
             }
         });
@@ -93,7 +80,7 @@ module.exports.login = function (req, res) {
     utils.http.assertNotNull(res,'password', req.body.password);
     passport.authenticate('local', function (err, user, info) {
         var token;
-        if (err) {utils.http.sendError(res, 'UNKNOWN', err);}
+        if (err) {return utils.http.sendError(res, 'UNKNOWN', err);}
         if (user) {
             if (user.confirmed) {
                 token = user.generateJwt();
@@ -101,18 +88,45 @@ module.exports.login = function (req, res) {
                     "token": token
                 })
             } else {
-                utils.http.sendError(res, 'USER_NOT_CONFIRMED', {}, 401);
+                return utils.http.sendError(res, 'USER_NOT_CONFIRMED', {}, 401);
             }
 
         } else {
-            utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {}, 401);
+            return utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {}, 401);
         }
     })(req, res);
 
 };
 
 module.exports.addPhone = function (req, res) {
-    sendJSONresponse(res, 401);
+    utils.http.assertNotNull(res, 'phone', req.body.phone);
+    utils.http.assertNotNull(res, 'token', req.body.token);
+    var decoded;
+    try {
+        decoded = jwt.verify(req.body.token, env.jwtSecret);
+    } catch (e) {
+        utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {message:'Invalid token'}, 401)
+    }
+    if ((!decoded.email) || (!decoded.login)) {
+        utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {message:'Missing email or login in token'}, 401)
+    }
+    utils.http.assertUnique(res, User, ['phone'], [req.body.phone], function(){
+        User.findOne({email:decoded.email}, function(err, user){
+            if (!user) {
+                return utils.http.sendError(res, 'NOT_FOUND', {message:'User with specified email is not found'})
+            }
+            user.phone = req.body.phone;
+            user.save(function(err) {
+                if (err) {
+                    return utils.http.sendError(res, 'UNKNOWN', err)
+                }
+                var token = user.generateJwt();
+                utils.http.send(res, {token: token})
+            })
+        });
+    });
+
+
 };
 
 module.exports.confirm = function (req, res) {

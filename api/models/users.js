@@ -6,6 +6,7 @@ var mongoose = require( 'mongoose' );
 var crypto = require('crypto');
 var jwt = require('jsonwebtoken');
 var env = require('../env');
+var assign = require('object-assign');
 
 var userSchema = new mongoose.Schema({
     email: {
@@ -74,17 +75,18 @@ userSchema.methods.generateConfirm = function() {
 };
 
 userSchema.methods.generateJwt = function() {
+    var data = {};
+    ['_id', 'email', 'login', 'phone', 'confirmed'].forEach(function(name) {
+        if (name in this) {
+            var lexem = {};
+            lexem[name] = this[name];
+            data = assign(lexem, data)
+        }
+    }, this);
     var expiry = new Date();
     expiry.setDate(expiry.getDate() + 31);
-
-    return jwt.sign({
-        _id: this._id,
-        email: this.email,
-        login: this.login,
-        phone: this.phone,
-        name: this.name,
-        exp: parseInt(expiry.getTime() / 1000)
-    }, env.jwtSecret);
+    data = assign({'exp': parseInt(expiry.getTime() / 1000)}, data);
+    return jwt.sign(data, env.jwtSecret);
 };
 
 mongoose.model('User', userSchema);
