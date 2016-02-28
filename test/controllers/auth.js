@@ -7,16 +7,23 @@ var app = require('../../app');
 var request = require('supertest')(app);
 var expect = require('chai').expect;
 var mongoose = require('mongoose');
+var assign = require('object-assign');
 var User = mongoose.model('User');
+var utils = require('../../api/utils');
+
 
 describe('auth', function () {
-    testCase = {
+    registerCase = {
         email: 'nyasha@gmail.com',
         name: 'lampovaya nyasha',
         login: 'nyasha',
-        phone: '+71',
         password: 'nya'
     };
+    addPhoneCase = {
+        login: 'nyasha',
+        phone: '+712345567'
+    };
+
     beforeEach(function (done) {
         User.remove({}, function (err, res) {
             done()
@@ -28,7 +35,7 @@ describe('auth', function () {
         beforeEach(function (done) {
             request
                 .post('/users/register')
-                .send(testCase)
+                .send(registerCase)
                 .end(function (err, res) {
                     done();
                 });
@@ -40,7 +47,7 @@ describe('auth', function () {
                 request
                     .post('/users/reset')
                     .send({
-                        phone: testCase.phone
+                        phone: registerCase.phone
                     })
                     .end(function (err, res) {
                         expect(res.statusCode).to.equal(200);
@@ -58,7 +65,7 @@ describe('auth', function () {
                 request
                     .post('/users/reset')
                     .send({
-                        phone: testCase.phone+'1'
+                        phone: registerCase.phone + '1'
                     })
                     .end(function (err, res) {
                         expect(res.statusCode).to.equal(404);
@@ -76,7 +83,7 @@ describe('auth', function () {
         beforeEach(function (done) {
             request
                 .post('/users/register')
-                .send(testCase)
+                .send(registerCase)
                 .end(function (err, res) {
                     done();
                 });
@@ -88,7 +95,7 @@ describe('auth', function () {
                 request
                     .post('/users/confirm')
                     .send({
-                        phone: testCase.phone,
+                        phone: registerCase.phone,
                         confirm: user.confirm
                     })
                     .end(function (err, res) {
@@ -107,7 +114,7 @@ describe('auth', function () {
         beforeEach(function (done) {
             request
                 .post('/users/register')
-                .send(testCase)
+                .send(registerCase)
                 .end(function (err, res) {
                     User.findOne({}, function (err, user) {
                         user.confirmed = true;
@@ -122,8 +129,8 @@ describe('auth', function () {
             request
                 .post('/users/login')
                 .send({
-                    username: testCase.email,
-                    password: testCase.password
+                    username: registerCase.email,
+                    password: registerCase.password
                 }).end(function (err, res) {
                 expect(err).to.not.exist;
                 expect(res.body.token).to.exist;
@@ -135,8 +142,8 @@ describe('auth', function () {
             request
                 .post('/users/login')
                 .send({
-                    username: testCase.phone,
-                    password: testCase.password
+                    username: registerCase.phone,
+                    password: registerCase.password
                 }).end(function (err, res) {
                 expect(err).to.not.exist;
                 expect(res.body.token).to.exist;
@@ -148,8 +155,8 @@ describe('auth', function () {
             request
                 .post('/users/login')
                 .send({
-                    username: testCase.login,
-                    password: testCase.password
+                    username: registerCase.login,
+                    password: registerCase.password
                 }).end(function (err, res) {
                 expect(err).to.not.exist;
                 expect(res.body.token).to.exist;
@@ -161,8 +168,8 @@ describe('auth', function () {
             request
                 .post('/users/login')
                 .send({
-                    username: testCase.login + '1',
-                    password: testCase.password
+                    username: registerCase.login + '1',
+                    password: registerCase.password
                 }).end(function (err, res) {
                 expect(res.statusCode).to.equal(401);
                 expect(res.body).to.be.have.length(0);
@@ -177,8 +184,8 @@ describe('auth', function () {
                     request
                         .post('/users/login')
                         .send({
-                            username: testCase.login,
-                            password: testCase.password
+                            username: registerCase.login,
+                            password: registerCase.password
                         }).end(function (err, res) {
                         expect(res.statusCode).to.equal(401);
                         expect(res.body).to.be.have.length(0);
@@ -190,11 +197,81 @@ describe('auth', function () {
         });
     });
 
+
+    describe('/users/add_phone', function () {
+
+        var token;
+
+        beforeEach(function (done) {
+            request
+                .post('/users/register')
+                .send(registerCase)
+                .end(function (err, res) {
+                    token = res.body.token;
+                    done();
+                });
+        });
+
+        it('adds the phone and reissues new token', function (done) {
+            testCase = {
+                phone: '12334',
+                token: token
+            };
+            request
+                .post('/users/add_phone')
+                .send(testCase)
+                .end(function (err, res) {
+                    expect(err).to.not.exist;
+                    expect(res.statusCode).to.equal(200);
+                    expect(res.body.token).to.exist;
+                    expect(res.body.token).to.not.equal(token);
+                    User.count({}, function (_, res) {
+                        expect(res).to.equal(1);
+                        User.findOne(function (_, user) {
+                            expect(user.phone).to.equal(testCase.phone);
+                            expect(user.login).to.equal(registerCase.login);
+                            done()
+                        });
+                    });
+                });
+        });
+
+        it('sends duplicate phone error if the phone is already in use', function (done) {
+            testCase = {
+                phone: "7",
+                token: token
+            };
+            request
+                .post('/users/add_phone')
+                .send(testCase)
+                .end(function (err, res) {
+                    regCase2 = {
+                        email: 'nyasha1@gmail.com',
+                        name: 'lampovaya nyasha1',
+                        login: 'nyasha1',
+                        password: 'nya'
+                    };
+                    request
+                        .post('/users/register')
+                        .send(regCase2)
+                        .end(function (err, res) {
+                            token = res.body.token;
+                            request
+                                .post('/users/add_phone')
+                                .send(testCase)
+                                .end(function (err, res) {
+                                    expect(res.statusCode).to.equal(500)
+                                })
+                        });
+                })
+        })
+    });
+
     describe('/users/register', function () {
         it('stores user credentials and password in db and issues a token back', function (done) {
             request
                 .post('/users/register')
-                .send(testCase)
+                .send(registerCase)
                 .end(function (err, res) {
                     expect(err).to.not.exist;
                     expect(res.statusCode).to.equal(200);
@@ -202,10 +279,11 @@ describe('auth', function () {
                     User.count({}, function (_, res) {
                         expect(res).to.equal(1);
                         User.findOne(function (_, user) {
-                            Object.keys(testCase).forEach(function (key) {
+                            Object.keys(registerCase).forEach(function (key) {
                                 if (key == 'password') return;
-                                expect(user[key]).to.equal(testCase[key])
+                                expect(user[key]).to.equal(registerCase[key])
                             });
+                            expect(user.phone).to.be.empty;
                             expect(user.hash).to.have.length.above(0);
                             expect(user.salt).to.have.length.above(0);
                             expect(user.confirm).to.have.length(4);
@@ -214,7 +292,75 @@ describe('auth', function () {
 
                     });
                 })
-        })
+        });
+
+        it('responds with error if login is not unique', function (done) {
+            request
+                .post('/users/register')
+                .send(registerCase)
+                .end(function (err, res) {
+                    case2 = assign({}, registerCase);
+                    case2.email += 'z';
+                    request
+                        .post('/users/register')
+                        .send(case2)
+                        .end(function (err, res) {
+                            expect(res.body).to.eql({
+                                'error': {
+                                    'id': utils.http.errors.NOT_UNIQUE_FIELD.id,
+                                    'description': utils.http.errors.NOT_UNIQUE_FIELD.description,
+                                    'payload': 'login'
+                                }
+                            });
+                            return done()
+                        })
+                    ;
+                });
+        });
+
+        it('responds with error if email is not unique', function (done) {
+            request
+                .post('/users/register')
+                .send(registerCase)
+                .end(function (err, res) {
+                    case2 = assign({}, registerCase);
+                    case2.login += 'z';
+                    request
+                        .post('/users/register')
+                        .send(case2)
+                        .end(function (err, res) {
+                            expect(res.body).to.eql({
+                                'error': {
+                                    'id': utils.http.errors.NOT_UNIQUE_FIELD.id,
+                                    'description': utils.http.errors.NOT_UNIQUE_FIELD.description,
+                                    'payload': 'email'
+                                }
+                            });
+                            return done()
+                        })
+                    ;
+                });
+        });
+
+        it('proceeds as normal if login and email are unique', function (done) {
+            request
+                .post('/users/register')
+                .send(registerCase)
+                .end(function (err, res) {
+                    case2 = assign({}, registerCase);
+                    case2.login += 'z';
+                    case2.email += 'z';
+                    request
+                        .post('/users/register')
+                        .send(case2)
+                        .end(function (err, res) {
+                            expect(res.statusCode).to.equal(200);
+                            return done()
+                        })
+                    ;
+                });
+        });
+
     })
 
 });

@@ -7,6 +7,7 @@ var mongoose = require('mongoose');
 var env = require('../env');
 var sms = require('../sms/api');
 var User = mongoose.model('User');
+var utils = require('../utils');
 
 
 var sendJSONresponse = function (res, status, content) {
@@ -19,6 +20,14 @@ var sendConfirmation = function (user, done) {
     var confirm = user.confirm;
     sms.send(phone, confirm, done);
 };
+
+module.exports.errors = [
+    {
+        error: 'DUPLICATE_ENTRY',
+        description: 'Trying to save user with unique '
+    },
+    {}
+];
 
 module.exports.reset = function (req, res) {
 
@@ -52,38 +61,30 @@ module.exports.reset = function (req, res) {
 };
 
 module.exports.register = function (req, res) {
-    if (!req.body.name || !req.body.email || !req.body.login || !req.body.phone || !req.body.password) {
-        sendJSONresponse(res, 400, {
-            "message": "All fields required"
+    utils.http.assertNotNull(res, 'name', req.body.name);
+    utils.http.assertNotNull(res, 'email', req.body.email);
+    utils.http.assertNotNull(res, 'password', req.body.password);
+    utils.http.assertNotNull(res, 'login', req.body.login);
+    utils.http.assertUnique(res, User, ['email', 'login'], [req.body.email, req.body.login], function () {
+        var user = new User();
+
+        user.name = req.body.name;
+        user.email = req.body.email;
+        user.login = req.body.login;
+        user.confirm = user.generateConfirm();
+        user.setPassword(req.body.password);
+        user.save(function (err) {
+            if (err) {
+                utils.http.sendError(res, 'NOT_FOUND', err)
+            } else {
+                token = user.generateJwt();
+                sendJSONresponse(res, 200, {
+                    "token": token
+                });
+            }
         });
-        return;
-    }
-
-    var user = new User();
-
-    user.name = req.body.name;
-    user.email = req.body.email;
-    user.login = req.body.login;
-    user.phone = req.body.phone;
-    user.confirm = user.generateConfirm();
-    user.setPassword(req.body.password);
-    user.save(function (err) {
-        var token;
-        if (err) {
-            sendJSONresponse(res, 404, err);
-        } else {
-            sendConfirmation(user, function (err) {
-                if (err) {
-                    sendJSONresponse(res, 404, err);
-                } else {
-                    token = user.generateJwt();
-                    sendJSONresponse(res, 200, {
-                        "token": token
-                    });
-                }
-            });
-        }
     });
+
 
 };
 
@@ -113,6 +114,10 @@ module.exports.login = function (req, res) {
         }
     })(req, res);
 
+};
+
+module.exports.addPhone = function (req, res) {
+    sendJSONresponse(res, 401);
 };
 
 module.exports.confirm = function (req, res) {

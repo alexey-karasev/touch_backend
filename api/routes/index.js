@@ -12,5 +12,6 @@ router.post('/users/register', auth.register);
 router.post('/users/login', auth.login);
 router.post('/users/confirm', auth.confirm);
 router.post('/users/reset', auth.reset);
+router.post('/users/add_phone', auth.addPhone);
 
 module.exports = router;

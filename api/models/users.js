@@ -11,7 +11,9 @@ var userSchema = new mongoose.Schema({
     email: {
         type: String,
         unique: true,
-        required: true
+        required: true,
+        trim: true,
+        index:true
     },
     name: {
         type: String,
@@ -20,12 +22,16 @@ var userSchema = new mongoose.Schema({
     login: {
         type: String,
         unique: true,
-        required: true
+        required: true,
+        trim: true,
+        index: true
     },
     phone: {
         type: String,
         unique: true,
-        required: true
+        sparse: true,
+        trim: true,
+        index: true
     },
     confirm: {
         type: String,
