@@ -10,36 +10,23 @@ var User = mongoose.model('User');
 var utils = require('../utils');
 var jwt = require('jsonwebtoken');
 
-var sendConfirmation = function (user, done) {
-    var phone = user.phone;
-    var confirm = user.confirm;
-    sms.send(phone, confirm, done);
-};
 
 module.exports.reset = function (req, res) {
-
-    if (!req.body.phone) {
-        sendJSONresponse(res, 400, {
-            "message": "All fields required"
-        });
-        return;
-    }
-
+    utils.http.assertNotNull(res,'phone', req.body.phone);
     User.findOne({phone: req.body.phone}, function (err, user) {
         if (!user) {
-            sendJSONresponse(res, 404);
-            return
+            return utils.http.sendError(res,"NOT_FOUND");
         }
         var password = user.resetPassword();
         user.save(function (err) {
             if (err) {
-                sendJSONresponse(res, 404, err);
+                utils.http.sendError(res,'UNKNOWN', err)
             } else {
                 sms.send(req.body.phone, password, function (err) {
                     if (err) {
-                        sendJSONresponse(res, 404, err);
+                        utils.http.sendError(res,'UNKNOWN', err)
                     } else {
-                        sendJSONresponse(res, 200);
+                        utils.http.send(res);
                     }
                 });
             }
@@ -130,29 +117,36 @@ module.exports.addPhone = function (req, res) {
 };
 
 module.exports.confirm = function (req, res) {
-    if (!req.body.phone || !req.body.confirm) {
-        sendJSONresponse(res, 400, {
-            "message": "All fields required"
-        });
-        return;
+    utils.http.assertNotNull(res, 'token', req.body.token);
+    utils.http.assertNotNull(res, 'confirm', req.body.confirm);
+    var decoded;
+    try {
+        decoded = jwt.verify(req.body.token, env.jwtSecret);
+    } catch (e) {
+        utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {message:'Invalid token'}, 401)
     }
-
-    User.findOne({phone: req.body.phone}, function (err, user) {
+    if ((!decoded.email) || (!decoded.login) || (!decoded.phone)) {
+        utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {message:'Missing email or login or phone in token'}, 401)
+    }
+    var phone = decoded.phone;
+    User.findOne({phone: phone}, function (err, user) {
         if (err) {
-            sendJSONresponse(res, 404, err);
-            return;
+            return utils.http.sendError(res, 'UNKNOWN', err)
         }
+        if (!user) {
+            return utils.http.sendError(res, 'NOT_FOUND')
+        }
+
         if (user.confirm === req.body.confirm) {
             user.confirmed = true;
             user.save(function (err) {
                 if (err) {
-                    sendJSONresponse(res, 404, err);
-                    return;
+                    return utils.http.sendError(res, 'UNKNOWN', err)
                 }
-                sendJSONresponse(res, 200);
+                return utils.http.send(res)
             });
         } else {
-            sendJSONresponse(res, 403, {message: 'Invalid confirm code'});
+            return utils.http.sendError(res, 'INVALID_CONFIRMATION_CODE');
         }
     })
 

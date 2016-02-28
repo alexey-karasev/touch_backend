@@ -32,12 +32,25 @@ describe('auth', function () {
 
     describe('/users/reset', function () {
 
+        var token;
+        var phone = '123';
+
         beforeEach(function (done) {
             request
                 .post('/users/register')
                 .send(registerCase)
                 .end(function (err, res) {
-                    done();
+                    token = res.body.token;
+                    request
+                        .post('/users/add_phone')
+                        .send({
+                            phone: phone,
+                            token: token
+                        })
+                        .end(function (err, res) {
+                            token = res.body.token;
+                            done()
+                        });
                 });
         });
 
@@ -47,7 +60,7 @@ describe('auth', function () {
                 request
                     .post('/users/reset')
                     .send({
-                        phone: registerCase.phone
+                        phone: phone
                     })
                     .end(function (err, res) {
                         expect(res.statusCode).to.equal(200);
@@ -65,10 +78,17 @@ describe('auth', function () {
                 request
                     .post('/users/reset')
                     .send({
-                        phone: registerCase.phone + '1'
+                        phone: phone + '1'
                     })
                     .end(function (err, res) {
-                        expect(res.statusCode).to.equal(404);
+                        expect(res.statusCode).to.equal(500);
+                        expect(res.body).to.eql({
+                            error: {
+                                id: utils.http.errors.NOT_FOUND.id,
+                                description: utils.http.errors.NOT_FOUND.description,
+                                payload: {}
+                            }
+                        });
                         User.findOne({}, function (err, user1) {
                             expect(user1.hash).to.equal(hash);
                             done()
@@ -79,26 +99,36 @@ describe('auth', function () {
     });
 
 
-
-
     describe('/users/confirm', function () {
+
+        var token;
+        var phone = '123';
 
         beforeEach(function (done) {
             request
                 .post('/users/register')
                 .send(registerCase)
                 .end(function (err, res) {
-                    done();
+                    token = res.body.token;
+                    request
+                        .post('/users/add_phone')
+                        .send({
+                            phone: phone,
+                            token: token
+                        })
+                        .end(function (err, res) {
+                            token = res.body.token;
+                            done()
+                        });
                 });
         });
-
         it('confirms the user if the confirmation code is correct', function (done) {
             User.findOne({}, function (err, user) {
                 expect(user.confirmed).to.be.false;
                 request
                     .post('/users/confirm')
                     .send({
-                        phone: registerCase.phone,
+                        token: token,
                         confirm: user.confirm
                     })
                     .end(function (err, res) {
@@ -110,9 +140,36 @@ describe('auth', function () {
                     })
             });
 
+        });
+
+        it('fails if the confirmation code is invalid', function (done) {
+            User.findOne({}, function (err, user) {
+                expect(user.confirmed).to.be.false;
+                request
+                    .post('/users/confirm')
+                    .send({
+                        token: token,
+                        confirm: user.confirm + 1
+                    })
+                    .end(function (err, res) {
+                        expect(res.statusCode).to.equal(500);
+                        expect(res.body).to.eql({
+                                error: {
+                                    id: utils.http.errors.INVALID_CONFIRMATION_CODE.id,
+                                    description: utils.http.errors.INVALID_CONFIRMATION_CODE.description,
+                                    payload: {}
+                                }
+                            }
+                        );
+                        User.findOne({}, function (err, user) {
+                            expect(user.confirmed).to.be.false;
+                            return done()
+                        });
+
+                    })
+            });
         })
     });
-
 
 
     describe('/users/login', function () {
@@ -144,16 +201,26 @@ describe('auth', function () {
         });
 
         it('logins the user with correct phone', function (done) {
+            testCase = {
+                phone: '12334',
+                token: token
+            };
             request
-                .post('/users/login')
-                .send({
-                    username: registerCase.phone,
-                    password: registerCase.password
-                }).end(function (err, res) {
-                expect(err).to.not.exist;
-                expect(res.body.token).to.exist;
-                done()
-            })
+                .post('/users/add_phone')
+                .send(testCase)
+                .end(function (err, res) {
+                    request
+                        .post('/users/login')
+                        .send({
+                            username: testCase.phone,
+                            password: registerCase.password
+                        }).end(function (err, res) {
+                        expect(err).to.not.exist;
+                        expect(res.body.token).to.exist;
+                        done()
+                    })
+                });
+
         });
 
         it('logins the user with correct login', function (done) {
@@ -213,7 +280,6 @@ describe('auth', function () {
 
         });
     });
-
 
 
     describe('/users/add_phone', function () {
@@ -281,9 +347,9 @@ describe('auth', function () {
                                     expect(res.statusCode).to.equal(500);
                                     expect(res.body).to.eql({
                                         'error': {
-                                            id:utils.http.errors.NOT_UNIQUE_FIELD.id,
-                                            description:utils.http.errors.NOT_UNIQUE_FIELD.description,
-                                            payload:"phone"
+                                            id: utils.http.errors.NOT_UNIQUE_FIELD.id,
+                                            description: utils.http.errors.NOT_UNIQUE_FIELD.description,
+                                            payload: "phone"
                                         }
                                     });
                                     return done()
@@ -292,7 +358,7 @@ describe('auth', function () {
                 })
         })
 
-        it ('sends the invalid credentials error if the token is invalid', function(done) {
+        it('sends the invalid credentials error if the token is invalid', function (done) {
             testCase = {
                 phone: "7",
                 token: "123"

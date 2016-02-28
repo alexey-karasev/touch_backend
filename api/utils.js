@@ -26,6 +26,10 @@ module.exports.http = {
             id: 'USER_NOT_CONFIRMED',
             description: "The user has not confirmed his/her phone"
         },
+        'INVALID_CONFIRMATION_CODE': {
+            id: 'INVALID_CONFIRMATION_CODE',
+            description: "Incorrect sms confiramtion code"
+        },
         'UNKNOWN': {
             id: 'UNKNOWN',
             description: "Unknown server error"
