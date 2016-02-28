@@ -52,10 +52,11 @@ module.exports.http = {
         res.json(payload);
     },
 
-    assertNotNull: function (res, name, value) {
+    assertNotNull: function (res, name, value, done) {
         if (!value) {
-            this.sendError(res, 'EMPTY_FIELD', name)
+            return this.sendError(res, 'EMPTY_FIELD', name)
         }
+        done()
     },
 
     assertUnique: function (res, model, names, values, done) {
