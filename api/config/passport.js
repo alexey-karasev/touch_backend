@@ -13,12 +13,12 @@ function _findUser(types, username, password, done) {
     query[type] = username;
     User.findOne(query, function (err, user) {
         if (err) {
-            done(err,null);
+            return done(err,null);
         }
         if ((!user) && (types.length > 0)) {
             _findUser(types, username, password, done)
         } else {
-            done(err, user);
+            return done(err, user);
         }
     });
 }
@@ -27,7 +27,7 @@ passport.use(new LocalStrategy(function (username, password, done) {
         var user;
         _findUser(['email', 'phone', 'login'], username, password, function (err, res) {
             user = res;
-            if (user && (!user.validPassword(password) || !user.confirmed)) user = null;
+            if (user && !user.validPassword(password)) user = null;
             return done(err, user);
         })
     }

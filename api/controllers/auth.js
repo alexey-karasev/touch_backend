@@ -89,28 +89,23 @@ module.exports.register = function (req, res) {
 };
 
 module.exports.login = function (req, res) {
-    if (!req.body.username || !req.body.password) {
-        sendJSONresponse(res, 400, {
-            "message": "All fields required"
-        });
-        return;
-    }
-
+    utils.http.assertNotNull(res,'username', req.body.username);
+    utils.http.assertNotNull(res,'password', req.body.password);
     passport.authenticate('local', function (err, user, info) {
         var token;
-
-        if (err) {
-            sendJSONresponse(res, 404, err);
-            return;
-        }
-
+        if (err) {utils.http.sendError(res, 'UNKNOWN', err);}
         if (user) {
-            token = user.generateJwt();
-            sendJSONresponse(res, 200, {
-                "token": token
-            });
+            if (user.confirmed) {
+                token = user.generateJwt();
+                utils.http.send(res, {
+                    "token": token
+                })
+            } else {
+                utils.http.sendError(res, 'USER_NOT_CONFIRMED', {}, 401);
+            }
+
         } else {
-            sendJSONresponse(res, 401, info);
+            utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {}, 401);
         }
     })(req, res);
 

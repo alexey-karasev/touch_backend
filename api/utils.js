@@ -18,18 +18,26 @@ module.exports.http = {
             id: 'NOT_FOUND',
             description: "The record with specified parameters was not found"
         },
+        'INVALID_USER_CREDENTIALS': {
+            id: 'INVALID_USER_CREDENTIALS',
+            description: "The login / password pair is invalid"
+        },
+        'USER_NOT_CONFIRMED': {
+            id: 'USER_NOT_CONFIRMED',
+            description: "The user has not confirmed his/her phone"
+        },
         'UNKNOWN': {
             id: 'UNKNOWN',
             description: "Unknown server error"
         }
     },
 
-    sendError: function (res, error, payload) {
-        res.status(500);
+    sendError: function (res, error, payload, code) {
+        code = code || 500;
+        payload = payload || {};
+        res.status(code);
         error = this.errors[error];
-        if (payload) {
-            error = assign({'payload': payload}, error)
-        }
+        error = assign({'payload': payload}, error);
         res.json({'error': error});
     },
 
@@ -42,7 +50,7 @@ module.exports.http = {
 
     assertNotNull: function (res, name, value) {
         if (!value) {
-            this.sendError(res, errors['EMPTY_FIELD'], name)
+            this.sendError(res, 'EMPTY_FIELD', name)
         }
     },
 

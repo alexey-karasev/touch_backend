@@ -172,8 +172,14 @@ describe('auth', function () {
                     password: registerCase.password
                 }).end(function (err, res) {
                 expect(res.statusCode).to.equal(401);
-                expect(res.body).to.be.have.length(0);
-                done()
+                expect(res.body).to.eql({
+                    'error': {
+                        'id': utils.http.errors.INVALID_USER_CREDENTIALS.id,
+                        'description': utils.http.errors.INVALID_USER_CREDENTIALS.description,
+                        'payload': {}
+                    }
+                });
+                return done()
             })
         });
 
@@ -188,7 +194,13 @@ describe('auth', function () {
                             password: registerCase.password
                         }).end(function (err, res) {
                         expect(res.statusCode).to.equal(401);
-                        expect(res.body).to.be.have.length(0);
+                        expect(res.body).to.eql({
+                            'error': {
+                                'id': utils.http.errors.USER_NOT_CONFIRMED.id,
+                                'description': utils.http.errors.USER_NOT_CONFIRMED.description,
+                                'payload': {}
+                            }
+                        });
                         done()
                     })
                 })
