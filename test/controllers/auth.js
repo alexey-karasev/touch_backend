@@ -265,7 +265,7 @@ describe('auth', function () {
                             username: registerCase.login,
                             password: registerCase.password
                         }).end(function (err, res) {
-                        expect(res.statusCode).to.equal(401);
+                        expect(res.statusCode).to.equal(500);
                         expect(res.body).to.eql({
                             'error': {
                                 'id': utils.http.errors.USER_NOT_CONFIRMED.id,

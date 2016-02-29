@@ -80,7 +80,7 @@ module.exports.login = function (req, res) {
                             "token": token
                         })
                     } else {
-                        return utils.http.sendError(res, 'USER_NOT_CONFIRMED', {}, 401);
+                        return utils.http.sendError(res, 'USER_NOT_CONFIRMED');
                     }
 
                 } else {
