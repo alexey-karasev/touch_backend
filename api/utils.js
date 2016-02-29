@@ -88,7 +88,7 @@ module.exports.http = {
             for (var i = 0; i < names.length; i++) {
                 var name = names[i];
                 if (item[name] == values[i]) {
-                    self.sendError(res, "NOT_UNIQUE_FIELD", [name]);
+                    self.sendError(res, "NOT_UNIQUE_FIELD", {field:name});
                     return
                 }
             }
