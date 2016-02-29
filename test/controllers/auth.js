@@ -349,7 +349,7 @@ describe('auth', function () {
                                         'error': {
                                             id: utils.http.errors.NOT_UNIQUE_FIELD.id,
                                             description: utils.http.errors.NOT_UNIQUE_FIELD.description,
-                                            payload: "phone"
+                                            payload: ["phone"]
                                         }
                                     });
                                     return done()
@@ -416,7 +416,7 @@ describe('auth', function () {
                                 'error': {
                                     'id': utils.http.errors.NOT_UNIQUE_FIELD.id,
                                     'description': utils.http.errors.NOT_UNIQUE_FIELD.description,
-                                    'payload': 'login'
+                                    'payload': ['login']
                                 }
                             });
                             return done()
@@ -440,7 +440,7 @@ describe('auth', function () {
                                 'error': {
                                     'id': utils.http.errors.NOT_UNIQUE_FIELD.id,
                                     'description': utils.http.errors.NOT_UNIQUE_FIELD.description,
-                                    'payload': 'email'
+                                    'payload': ['email']
                                 }
                             });
                             return done()
