@@ -42,6 +42,7 @@ module.exports.http = {
         res.status(code);
         error = this.errors[error];
         error = assign({'payload': payload}, error);
+        console.log(error);
         res.json({'error': error});
     },
 

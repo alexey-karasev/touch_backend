@@ -74,7 +74,7 @@ userSchema.methods.generateConfirm = function() {
     return ('0000'+rand.toString()).substr(-4); //last four digits
 };
 
-userSchema.methods.generateJwt = function() {
+userSchema.methods.generateJwt = function(expirationInSeconds) {
     var data = {};
     ['_id', 'email', 'login', 'phone', 'confirmed'].forEach(function(name) {
         if (name in this) {
@@ -84,7 +84,8 @@ userSchema.methods.generateJwt = function() {
         }
     }, this);
     var expiry = new Date();
-    expiry.setDate(expiry.getDate() + 31);
+    expirationDate = expirationInSeconds || 60*60*24*30; // one month
+    expiry.setSeconds(expiry.getSeconds() + expirationDate);
     data = assign({'exp': parseInt(expiry.getTime() / 1000)}, data);
     return jwt.sign(data, env.jwtSecret);
 };

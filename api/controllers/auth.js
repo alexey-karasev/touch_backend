@@ -10,6 +10,8 @@ var User = mongoose.model('User');
 var utils = require('../utils');
 var jwt = require('jsonwebtoken');
 
+var SESSION_LENGTH=10*60; // 10 min
+var TOKEN_LIFECYCLE = 60*60*24*30; //30 days
 
 module.exports.reset = function (req, res) {
     utils.http.assertNotNull(res, 'phone', req.body.phone, function() {
@@ -52,7 +54,7 @@ module.exports.register = function (req, res) {
                             if (err) {
                                 utils.http.sendError(res, 'NOT_FOUND', err)
                             } else {
-                                token = user.generateJwt();
+                                token = user.generateJwt(SESSION_LENGTH);
                                 utils.http.send(res, {
                                     token: token
                                 });
@@ -75,7 +77,7 @@ module.exports.login = function (req, res) {
                 }
                 if (user) {
                     if (user.confirmed) {
-                        token = user.generateJwt();
+                        token = user.generateJwt(TOKEN_LIFECYCLE);
                         utils.http.send(res, {
                             "token": token
                         })
@@ -116,8 +118,14 @@ module.exports.addPhone = function (req, res) {
                         if (err) {
                             return utils.http.sendError(res, 'UNKNOWN', err)
                         }
-                        var token = user.generateJwt();
-                        utils.http.send(res, {token: token})
+                        sms.send(user.phone,user.confirm, function(err) {
+                            if (err) {
+                                return utils.http.sendError(res, 'UNKNOWN_SERVER', err)
+                            }
+                            var token = user.generateJwt(SESSION_LENGTH);
+                            utils.http.send(res, {token: token})
+                        });
+
                     })
                 });
             });
@@ -152,7 +160,8 @@ module.exports.confirm = function (req, res) {
                         if (err) {
                             return utils.http.sendError(res, 'UNKNOWN', err)
                         }
-                        return utils.http.send(res)
+                        var token = user.generateJwt(TOKEN_LIFECYCLE);
+                        return utils.http.send(res, {token: token})
                     });
                 } else {
                     return utils.http.sendError(res, 'INVALID_CONFIRMATION_CODE');
