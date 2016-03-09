@@ -52,7 +52,7 @@ module.exports.register = function (req, res) {
                         user.setPassword(req.body.password);
                         user.save(function (err) {
                             if (err) {
-                                utils.http.sendError(res, 'NOT_FOUND', err)
+                                utils.http.sendError(res, 'UNKNOWN', err)
                             } else {
                                 token = user.generateJwt(SESSION_LENGTH);
                                 utils.http.send(res, {
@@ -86,7 +86,7 @@ module.exports.login = function (req, res) {
                     }
 
                 } else {
-                    return utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {}, 401);
+                    return utils.http.sendError(res, 'UNAUTHORIZED', {}, 401);
                 }
             })(req, res);
 
@@ -103,10 +103,10 @@ module.exports.addPhone = function (req, res) {
             try {
                 decoded = jwt.verify(req.body.token, env.jwtSecret);
             } catch (e) {
-                utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {message: 'Invalid token'}, 401)
+                utils.http.sendError(res, 'UNAUTHORIZED', {message: 'Invalid token'}, 401)
             }
             if ((!decoded.email) || (!decoded.login)) {
-                utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {message: 'Missing email or login in token'}, 401)
+                utils.http.sendError(res, 'UNAUTHORIZED', {message: 'Missing email or login in token'}, 401)
             }
             utils.http.assertUnique(res, User, ['phone'], [req.body.phone], function () {
                 User.findOne({email: decoded.email}, function (err, user) {
@@ -120,7 +120,7 @@ module.exports.addPhone = function (req, res) {
                         }
                         sms.send(user.phone,user.confirm, function(err) {
                             if (err) {
-                                return utils.http.sendError(res, 'UNKNOWN_SERVER', err)
+                                return utils.http.sendError(res, 'UNKNOWN', err)
                             }
                             var token = user.generateJwt(SESSION_LENGTH);
                             utils.http.send(res, {token: token})
@@ -140,10 +140,10 @@ module.exports.confirm = function (req, res) {
             try {
                 decoded = jwt.verify(req.body.token, env.jwtSecret);
             } catch (e) {
-                utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {message: 'Invalid token'}, 401)
+                utils.http.sendError(res, 'UNAUTHORIZED', {message: 'Invalid token'}, 401)
             }
             if ((!decoded.email) || (!decoded.login) || (!decoded.phone)) {
-                utils.http.sendError(res, 'INVALID_USER_CREDENTIALS', {message: 'Missing email or login or phone in token'}, 401)
+                utils.http.sendError(res, 'UNAUTHORIZED', {message: 'Missing email or login or phone in token'}, 401)
             }
             var phone = decoded.phone;
             User.findOne({phone: phone}, function (err, user) {
@@ -164,7 +164,7 @@ module.exports.confirm = function (req, res) {
                         return utils.http.send(res, {token: token})
                     });
                 } else {
-                    return utils.http.sendError(res, 'INVALID_CONFIRMATION_CODE');
+                    return utils.http.sendError(res, 'INVALID_PASSWORD');
                 }
             })
         });

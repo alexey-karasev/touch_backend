@@ -18,9 +18,13 @@ module.exports.http = {
             id: 'NOT_FOUND',
             description: "The record with specified parameters was not found"
         },
-        'INVALID_USER_CREDENTIALS': {
-            id: 'INVALID_USER_CREDENTIALS',
-            description: "The login / password pair is invalid"
+        'INVALID_PASSWORD': {
+            id: 'INVALID_PASSWORD',
+            description: "The password is invalid"
+        },
+        'UNAUTHORIZED': {
+            id: 'UNAUTHORIZED',
+            description: "Unauthorized"
         },
         'USER_NOT_CONFIRMED': {
             id: 'USER_NOT_CONFIRMED',
@@ -55,7 +59,7 @@ module.exports.http = {
 
     assertNotNull: function (res, name, value, done) {
         if (!value) {
-            return this.sendError(res, 'EMPTY_FIELD', name)
+            return this.sendError(res, 'EMPTY_FIELD', {field:name})
         }
         done()
     },
